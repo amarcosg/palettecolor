@@ -11,6 +11,18 @@
         <h1>Generador de Paletas de Colores</h1>
         <p class="instructions">Presiona la barra espaciadora o el botón para generar colores. Haz clic en un color para bloquearlo.</p>
 
+        <div class="color-scheme-selector">
+            <label for="schemeSelect">Esquema de Color:</label>
+            <select id="schemeSelect">
+                <option value="monochromatic">Monocromático</option>
+                <option value="analogous">Análogo</option>
+                <option value="complementary">Complementario</option>
+                <option value="triadic">Triádico</option>
+                <option value="split-complementary">Complementario Dividido</option>
+                <option value="tetradic">Tetrádico</option>
+            </select>
+        </div>
+
         <div class="palette" id="palette">
             <!-- Los colores se generarán dinámicamente -->
         </div>

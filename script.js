@@ -1,39 +1,273 @@
 // Array para almacenar los colores y su estado de bloqueo
 let colors = [];
+let currentScheme = 'monochromatic';
 
 // Inicializar la aplicación
 function init() {
     generatePalette();
+    setupEventListeners();
 }
 
-// Generar un color hexadecimal aleatorio
-function generateRandomColor() {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
+// ===== FUNCIONES DE CONVERSIÓN DE COLOR =====
+
+// Convertir HEX a RGB
+function hexToRgb(hex) {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+
+// Convertir RGB a HEX
+function rgbToHex(r, g, b) {
+    return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+}
+
+// Convertir RGB a HSL
+function rgbToHsl(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) {
+        h = s = 0;
+    } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+        switch (max) {
+            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+            case g: h = ((b - r) / d + 2) / 6; break;
+            case b: h = ((r - g) / d + 4) / 6; break;
+        }
     }
-    return color;
+
+    return {
+        h: Math.round(h * 360),
+        s: Math.round(s * 100),
+        l: Math.round(l * 100)
+    };
 }
 
-// Generar paleta completa
+// Convertir HSL a RGB
+function hslToRgb(h, s, l) {
+    h /= 360;
+    s /= 100;
+    l /= 100;
+
+    let r, g, b;
+
+    if (s === 0) {
+        r = g = b = l;
+    } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+
+    return {
+        r: Math.round(r * 255),
+        g: Math.round(g * 255),
+        b: Math.round(b * 255)
+    };
+}
+
+// Convertir HEX a HSL
+function hexToHsl(hex) {
+    const rgb = hexToRgb(hex);
+    return rgbToHsl(rgb.r, rgb.g, rgb.b);
+}
+
+// Convertir HSL a HEX
+function hslToHex(h, s, l) {
+    const rgb = hslToRgb(h, s, l);
+    return rgbToHex(rgb.r, rgb.g, rgb.b);
+}
+
+// ===== ESQUEMAS DE COLOR =====
+
+// Generar un color base aleatorio
+function generateBaseColor() {
+    const h = Math.floor(Math.random() * 360);
+    const s = Math.floor(Math.random() * 40) + 60; // 60-100% saturación
+    const l = Math.floor(Math.random() * 30) + 40; // 40-70% luminosidad
+    return { h, s, l };
+}
+
+// Normalizar ángulo de matiz (0-360)
+function normalizeHue(hue) {
+    return ((hue % 360) + 360) % 360;
+}
+
+// Esquema Monocromático: Variaciones de luminosidad y saturación del mismo color
+function generateMonochromatic(baseColor) {
+    const colors = [];
+    const variations = [-30, -15, 0, 15, 30]; // Variaciones de luminosidad
+
+    variations.forEach(lVar => {
+        const l = Math.max(20, Math.min(80, baseColor.l + lVar));
+        const s = Math.max(40, Math.min(100, baseColor.s + (lVar * 0.5)));
+        colors.push(hslToHex(baseColor.h, s, l));
+    });
+
+    return colors;
+}
+
+// Esquema Análogo: Colores adyacentes en el círculo cromático
+function generateAnalogous(baseColor) {
+    const colors = [];
+    const angles = [-30, -15, 0, 15, 30]; // Ángulos cercanos
+
+    angles.forEach(angle => {
+        const h = normalizeHue(baseColor.h + angle);
+        const s = Math.max(50, Math.min(90, baseColor.s + (Math.random() * 20 - 10)));
+        const l = Math.max(30, Math.min(70, baseColor.l + (Math.random() * 20 - 10)));
+        colors.push(hslToHex(h, s, l));
+    });
+
+    return colors;
+}
+
+// Esquema Complementario: Colores opuestos
+function generateComplementary(baseColor) {
+    const colors = [];
+    const complementHue = normalizeHue(baseColor.h + 180);
+
+    // Color base y variaciones
+    colors.push(hslToHex(baseColor.h, baseColor.s, baseColor.l - 10));
+    colors.push(hslToHex(baseColor.h, baseColor.s, baseColor.l));
+    colors.push(hslToHex(baseColor.h, baseColor.s - 20, baseColor.l + 20));
+
+    // Colores complementarios
+    colors.push(hslToHex(complementHue, baseColor.s, baseColor.l));
+    colors.push(hslToHex(complementHue, baseColor.s - 15, baseColor.l + 10));
+
+    return colors;
+}
+
+// Esquema Triádico: Tres colores equidistantes (120° de separación)
+function generateTriadic(baseColor) {
+    const colors = [];
+    const hues = [
+        baseColor.h,
+        normalizeHue(baseColor.h + 120),
+        normalizeHue(baseColor.h + 240)
+    ];
+
+    // Dos variaciones del primer color
+    colors.push(hslToHex(hues[0], baseColor.s, baseColor.l - 10));
+    colors.push(hslToHex(hues[0], baseColor.s, baseColor.l + 10));
+
+    // Un color de cada uno de los otros dos
+    colors.push(hslToHex(hues[1], baseColor.s - 10, baseColor.l));
+    colors.push(hslToHex(hues[2], baseColor.s - 10, baseColor.l + 5));
+    colors.push(hslToHex(hues[1], baseColor.s + 10, baseColor.l - 15));
+
+    return colors;
+}
+
+// Esquema Complementario Dividido: Color base + 2 colores adyacentes al complementario
+function generateSplitComplementary(baseColor) {
+    const colors = [];
+    const complementHue = normalizeHue(baseColor.h + 180);
+
+    // Color base y variación
+    colors.push(hslToHex(baseColor.h, baseColor.s, baseColor.l - 10));
+    colors.push(hslToHex(baseColor.h, baseColor.s, baseColor.l));
+    colors.push(hslToHex(baseColor.h, baseColor.s - 20, baseColor.l + 15));
+
+    // Complementarios divididos
+    colors.push(hslToHex(normalizeHue(complementHue - 30), baseColor.s, baseColor.l));
+    colors.push(hslToHex(normalizeHue(complementHue + 30), baseColor.s, baseColor.l + 5));
+
+    return colors;
+}
+
+// Esquema Tetrádico: Cuatro colores en un cuadrado (90° de separación)
+function generateTetradic(baseColor) {
+    const colors = [];
+    const hues = [
+        baseColor.h,
+        normalizeHue(baseColor.h + 90),
+        normalizeHue(baseColor.h + 180),
+        normalizeHue(baseColor.h + 270)
+    ];
+
+    // Un color principal más prominente
+    colors.push(hslToHex(hues[0], baseColor.s, baseColor.l));
+
+    // Uno de cada uno de los otros colores
+    colors.push(hslToHex(hues[1], baseColor.s - 10, baseColor.l + 10));
+    colors.push(hslToHex(hues[2], baseColor.s - 15, baseColor.l - 5));
+    colors.push(hslToHex(hues[3], baseColor.s - 5, baseColor.l + 5));
+
+    // Variación del principal
+    colors.push(hslToHex(hues[0], baseColor.s + 10, baseColor.l + 15));
+
+    return colors;
+}
+
+// ===== GENERACIÓN DE PALETA =====
+
+// Generar paleta según el esquema seleccionado
 function generatePalette() {
-    const palette = document.getElementById('palette');
+    const baseColor = generateBaseColor();
+    let newColors;
+
+    switch (currentScheme) {
+        case 'monochromatic':
+            newColors = generateMonochromatic(baseColor);
+            break;
+        case 'analogous':
+            newColors = generateAnalogous(baseColor);
+            break;
+        case 'complementary':
+            newColors = generateComplementary(baseColor);
+            break;
+        case 'triadic':
+            newColors = generateTriadic(baseColor);
+            break;
+        case 'split-complementary':
+            newColors = generateSplitComplementary(baseColor);
+            break;
+        case 'tetradic':
+            newColors = generateTetradic(baseColor);
+            break;
+        default:
+            newColors = generateMonochromatic(baseColor);
+    }
 
     // Si es la primera vez, crear 5 colores nuevos
     if (colors.length === 0) {
-        for (let i = 0; i < 5; i++) {
-            colors.push({
-                hex: generateRandomColor(),
-                locked: false
-            });
-        }
+        colors = newColors.map(hex => ({
+            hex: hex,
+            locked: false
+        }));
     } else {
-        // Si no, solo generar colores para los no bloqueados
+        // Solo actualizar colores no bloqueados
+        let newColorIndex = 0;
         colors = colors.map(colorObj => {
-            if (!colorObj.locked) {
+            if (!colorObj.locked && newColorIndex < newColors.length) {
                 return {
-                    hex: generateRandomColor(),
+                    hex: newColors[newColorIndex++],
                     locked: false
                 };
             }
@@ -41,9 +275,10 @@ function generatePalette() {
         });
     }
 
-    // Renderizar la paleta
     renderPalette();
 }
+
+// ===== RENDERIZADO Y UI =====
 
 // Renderizar la paleta en el DOM
 function renderPalette() {
@@ -99,7 +334,6 @@ function copyToClipboard(text) {
 
 // Mostrar notificación temporal
 function showNotification(message) {
-    // Remover notificación existente si la hay
     const existingNotification = document.querySelector('.notification');
     if (existingNotification) {
         existingNotification.remove();
@@ -129,7 +363,29 @@ function showNotification(message) {
     }, 2000);
 }
 
-// Agregar animaciones CSS para las notificaciones
+// ===== EVENT LISTENERS =====
+
+function setupEventListeners() {
+    // Botón de generar
+    document.getElementById('generateBtn').addEventListener('click', generatePalette);
+
+    // Selector de esquema
+    const schemeSelect = document.getElementById('schemeSelect');
+    schemeSelect.addEventListener('change', (e) => {
+        currentScheme = e.target.value;
+        generatePalette();
+    });
+
+    // Barra espaciadora
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.keyCode === 32) {
+            e.preventDefault();
+            generatePalette();
+        }
+    });
+}
+
+// Agregar animaciones CSS
 const style = document.createElement('style');
 style.textContent = `
     @keyframes slideIn {
@@ -156,20 +412,7 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
-// Event listeners
-document.getElementById('generateBtn').addEventListener('click', generatePalette);
-
-// Evento para la barra espaciadora
-document.addEventListener('keydown', (e) => {
-    // Verificar si la tecla presionada es la barra espaciadora (código 32 o ' ')
-    if (e.code === 'Space' || e.keyCode === 32) {
-        // Prevenir el scroll de la página
-        e.preventDefault();
-        generatePalette();
-    }
-});
-
-// Inicializar la aplicación cuando el DOM esté listo
+// Inicializar
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {

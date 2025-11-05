@@ -227,6 +227,23 @@ function generateTetradic(baseColor) {
 
 // ===== GENERACIÓN DE PALETA =====
 
+// Calcular diferencia entre dos colores (distancia en espacio HSL)
+function colorDistance(hex1, hex2) {
+    const hsl1 = hexToHsl(hex1);
+    const hsl2 = hexToHsl(hex2);
+
+    // Diferencia de matiz (circular)
+    let hDiff = Math.abs(hsl1.h - hsl2.h);
+    if (hDiff > 180) hDiff = 360 - hDiff;
+
+    // Diferencia de saturación y luminosidad
+    const sDiff = Math.abs(hsl1.s - hsl2.s);
+    const lDiff = Math.abs(hsl1.l - hsl2.l);
+
+    // Distancia ponderada
+    return (hDiff / 180) * 0.5 + (sDiff / 100) * 0.25 + (lDiff / 100) * 0.25;
+}
+
 // Generar paleta según el esquema seleccionado
 function generatePalette() {
     let baseColor;
@@ -234,9 +251,20 @@ function generatePalette() {
     // Si hay colores bloqueados, usar el primero como base para mantener coherencia
     const lockedColors = colors.filter(c => c.locked);
     if (lockedColors.length > 0) {
-        // Usar el primer color bloqueado como referencia
+        // Usar el primer color bloqueado como referencia pero con variación
         const lockedHsl = hexToHsl(lockedColors[0].hex);
-        baseColor = lockedHsl;
+
+        // Agregar variación aleatoria pequeña para generar paletas diferentes
+        // pero que mantengan coherencia con el color bloqueado
+        const hueVariation = (Math.random() - 0.5) * 20; // ±10 grados
+        const satVariation = (Math.random() - 0.5) * 10; // ±5%
+        const lightVariation = (Math.random() - 0.5) * 10; // ±5%
+
+        baseColor = {
+            h: normalizeHue(lockedHsl.h + hueVariation),
+            s: Math.max(40, Math.min(100, lockedHsl.s + satVariation)),
+            l: Math.max(30, Math.min(70, lockedHsl.l + lightVariation))
+        };
     } else {
         // Si no hay colores bloqueados, generar uno aleatorio
         baseColor = generateBaseColor();
@@ -274,12 +302,19 @@ function generatePalette() {
             locked: false
         }));
     } else {
+        // Filtrar colores demasiado similares a los bloqueados para evitar duplicados
+        const lockedHexes = lockedColors.map(c => c.hex);
+        const filteredNewColors = newColors.filter(newHex => {
+            // Verificar que el nuevo color no sea muy similar a ningún color bloqueado
+            return lockedHexes.every(lockedHex => colorDistance(newHex, lockedHex) > 0.15);
+        });
+
         // Solo actualizar colores no bloqueados
         let newColorIndex = 0;
         colors = colors.map(colorObj => {
-            if (!colorObj.locked && newColorIndex < newColors.length) {
+            if (!colorObj.locked && newColorIndex < filteredNewColors.length) {
                 return {
-                    hex: newColors[newColorIndex++],
+                    hex: filteredNewColors[newColorIndex++],
                     locked: false
                 };
             }

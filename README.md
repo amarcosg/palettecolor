@@ -25,8 +25,14 @@ Una aplicación web interactiva que genera paletas de colores armónicas basadas
 3. Presiona la **barra espaciadora** o el botón **"Generar Paleta"**
 4. Haz **clic en un color** para bloquearlo/desbloquearlo
 5. Haz **clic en el código HEX** para copiarlo al portapapeles
-6. Genera nuevas paletas sin perder tus colores bloqueados
-7. Cambia de esquema en cualquier momento para explorar diferentes armonías
+6. **¿Encontraste un color que te gusta?** Bloquéalo y genera nuevos colores - los nuevos se crearán en armonía con tu color bloqueado
+7. Cambia de esquema en cualquier momento para explorar diferentes armonías basadas en tus colores bloqueados
+
+### 💡 Consejo Pro
+Cuando bloqueas colores, el generador los usa como referencia para crear la paleta. Esto significa que puedes:
+- Bloquear tu color de marca y generar paletas que lo complementen
+- Encontrar un color perfecto y explorar variaciones armónicas
+- Combinar múltiples colores bloqueados y llenar los espacios restantes coherentemente
 
 ## 🛠️ Tecnologías
 
@@ -60,11 +66,13 @@ palettecolor/
 5. **Complementario Dividido**: Base + dos adyacentes al complementario
 6. **Tetrádico**: Cuatro colores en cuadrado (90°) para paletas ricas
 
-### Sistema de Bloqueo
-- Toggle de bloqueo por color
+### Sistema de Bloqueo Inteligente
+- Toggle de bloqueo por color con un clic
 - Indicadores visuales (icono de candado y borde)
-- Persistencia de colores bloqueados al regenerar
-- Los nuevos colores mantienen el esquema de armonía seleccionado
+- **Persistencia de colores bloqueados**: Los colores fijados nunca se regeneran
+- **Generación coherente**: Los nuevos colores usan los bloqueados como referencia
+- Si bloqueas un color, los nuevos se generarán siguiendo el esquema de armonía **basándose en el color bloqueado**
+- Ejemplo: Si bloqueas un azul y usas esquema "Complementario", los nuevos colores serán azules y naranjas que complementen tu azul específico
 
 ### Interactividad
 - Selector de esquema de color con cambio dinámico

@@ -229,7 +229,19 @@ function generateTetradic(baseColor) {
 
 // Generar paleta según el esquema seleccionado
 function generatePalette() {
-    const baseColor = generateBaseColor();
+    let baseColor;
+
+    // Si hay colores bloqueados, usar el primero como base para mantener coherencia
+    const lockedColors = colors.filter(c => c.locked);
+    if (lockedColors.length > 0) {
+        // Usar el primer color bloqueado como referencia
+        const lockedHsl = hexToHsl(lockedColors[0].hex);
+        baseColor = lockedHsl;
+    } else {
+        // Si no hay colores bloqueados, generar uno aleatorio
+        baseColor = generateBaseColor();
+    }
+
     let newColors;
 
     switch (currentScheme) {
